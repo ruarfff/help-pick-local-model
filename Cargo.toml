@@ -1,0 +1,25 @@
+[package]
+name = "mlx-model-picker"
+version = "0.1.0"
+edition = "2024"
+license = "MIT"
+description = "Pick a local MLX model for your Mac from Hugging Face mlx-community metadata."
+repository = "https://github.com/ruarfff/help-pick-local-model"
+
+[dependencies]
+anyhow = "1.0.98"
+chrono = { version = "0.4.41", default-features = false, features = ["clock", "serde"] }
+clap = { version = "4.5.40", features = ["derive"] }
+comfy-table = "7.1.4"
+directories = "6.0.0"
+futures = "0.3.31"
+regex = "1.11.1"
+reqwest = { version = "0.12.20", default-features = false, features = ["json", "rustls-tls"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+sysinfo = "0.35.2"
+tokio = { version = "1.45.1", features = ["fs", "macros", "process", "rt-multi-thread"] }
+
+[dev-dependencies]
+assert_cmd = "2.0.17"
+predicates = "3.1.3"
