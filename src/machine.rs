@@ -21,16 +21,12 @@ pub async fn detect_machine() -> Result<MachineInfo> {
         value => value,
     }
     .to_string();
+    let mut system = sysinfo::System::new();
+    system.refresh_memory();
     let total_memory_gb = sysctl_u64("hw.memsize")
         .await
         .map(bytes_to_gb)
-        .unwrap_or_else(|| {
-            let mut system = sysinfo::System::new_all();
-            system.refresh_memory();
-            bytes_to_gb(system.total_memory())
-        });
-    let mut system = sysinfo::System::new_all();
-    system.refresh_memory();
+        .unwrap_or_else(|| bytes_to_gb(system.total_memory()));
     let available_memory_gb = Some(bytes_to_gb(system.available_memory()));
     let os = macos_version().await;
     let chip = sysctl_string("machdep.cpu.brand_string").await;

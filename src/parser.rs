@@ -1,5 +1,18 @@
+use std::sync::LazyLock;
+
 use regex::Regex;
 use serde::{Deserialize, Serialize};
+
+static TOTAL_PARAMS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)(\d+(?:\.\d+)?)\s*b\b").unwrap());
+static ACTIVE_PARAMS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\ba(\d+(?:\.\d+)?)\s*b\b").unwrap());
+static EFFECTIVE_PARAMS_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)\be(\d+(?:\.\d+)?)\s*b\b").unwrap());
+static QWEN_GENERATION_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)qwen\s*(\d+(?:\.\d+)?)").unwrap());
+static PARAM_TOKEN_RE: LazyLock<Regex> =
+    LazyLock::new(|| Regex::new(r"(?i)^[ae]?\d+(?:\.\d+)?b$").unwrap());
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ParsedModel {
@@ -36,9 +49,9 @@ pub fn parse_model_id(repo_id: &str) -> ParsedModel {
 
     let family = infer_family(&lower);
     let generation = infer_generation(&family, &tokens, &lower);
-    let total_params_b = capture_param(&lower, r"(?i)(\d+(?:\.\d+)?)\s*b\b");
-    let active_params_b = capture_param(&lower, r"(?i)\ba(\d+(?:\.\d+)?)\s*b\b");
-    let effective_params_b = capture_param(&lower, r"(?i)\be(\d+(?:\.\d+)?)\s*b\b");
+    let total_params_b = capture_param(&lower, &TOTAL_PARAMS_RE);
+    let active_params_b = capture_param(&lower, &ACTIVE_PARAMS_RE);
+    let effective_params_b = capture_param(&lower, &EFFECTIVE_PARAMS_RE);
     let quantization = infer_quantization(&lower);
     let is_instruction_tuned = tokens.iter().any(|token| {
         matches!(
@@ -115,9 +128,8 @@ fn infer_family(lower: &str) -> String {
 
 fn infer_generation(family: &str, tokens: &[String], lower: &str) -> Option<String> {
     match family {
-        "qwen" => Regex::new(r"(?i)qwen\s*(\d+(?:\.\d+)?)")
-            .ok()
-            .and_then(|re| re.captures(lower))
+        "qwen" => QWEN_GENERATION_RE
+            .captures(lower)
             .and_then(|captures| captures.get(1).map(|value| value.as_str().to_string())),
         "llama" => tokens
             .iter()
@@ -134,10 +146,8 @@ fn infer_generation(family: &str, tokens: &[String], lower: &str) -> Option<Stri
     }
 }
 
-fn capture_param(lower: &str, pattern: &str) -> Option<f64> {
-    Regex::new(pattern)
-        .ok()
-        .and_then(|re| re.captures(lower))
+fn capture_param(lower: &str, re: &Regex) -> Option<f64> {
+    re.captures(lower)
         .and_then(|captures| captures.get(1))
         .and_then(|value| value.as_str().parse::<f64>().ok())
 }
@@ -177,7 +187,5 @@ fn is_known_token(
                 | "optiq"
                 | "base"
         )
-        || Regex::new(r"(?i)^[ae]?\d+(?:\.\d+)?b$")
-            .ok()
-            .is_some_and(|re| re.is_match(token))
+        || PARAM_TOKEN_RE.is_match(token)
 }
