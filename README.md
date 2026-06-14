@@ -25,4 +25,5 @@ default runtime mode is `auto`.
 cargo fmt --check
 cargo clippy -- -D warnings
 cargo test
+./scripts/qa.sh
 ```

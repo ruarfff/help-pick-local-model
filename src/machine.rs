@@ -34,9 +34,8 @@ pub async fn detect_machine() -> Result<MachineInfo> {
     let available_memory_gb = Some(bytes_to_gb(system.available_memory()));
     let os = macos_version().await;
     let chip = sysctl_string("machdep.cpu.brand_string").await;
-    let is_apple_silicon = arch == "aarch64"
-        || arch == "arm64"
-        || sysctl_string("hw.optional.arm64").await.as_deref() == Some("1");
+    let is_apple_silicon =
+        arch == "arm64" || sysctl_string("hw.optional.arm64").await.as_deref() == Some("1");
     let free_disk_gb = Disks::new_with_refreshed_list()
         .iter()
         .find(|disk| disk.mount_point().to_string_lossy() == "/")

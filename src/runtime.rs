@@ -5,7 +5,7 @@ use tokio::process::Command;
 
 use crate::{hf::ModelConfig, parser::ParsedModel};
 
-#[derive(Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, clap::ValueEnum)]
 #[serde(rename_all = "kebab-case")]
 pub enum RuntimeChoice {
     Auto,
@@ -34,6 +34,16 @@ impl RuntimeKind {
 impl std::fmt::Display for RuntimeKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
+            Self::MlxLm => write!(f, "mlx-lm"),
+            Self::MlxVlm => write!(f, "mlx-vlm"),
+        }
+    }
+}
+
+impl std::fmt::Display for RuntimeChoice {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Auto => write!(f, "auto"),
             Self::MlxLm => write!(f, "mlx-lm"),
             Self::MlxVlm => write!(f, "mlx-vlm"),
         }
@@ -147,7 +157,7 @@ pub fn infer_runtime(
     let is_compatible = choice == RuntimeChoice::Auto || inferred.is_none() || forced == inferred;
     if !is_compatible {
         warnings.push(format!(
-            "forced runtime {choice:?} does not match inferred runtime {}",
+            "forced runtime {choice} does not match inferred runtime {}",
             inferred
                 .map(|runtime| runtime.to_string())
                 .unwrap_or_else(|| "unknown".to_string())
@@ -212,16 +222,6 @@ fn is_vlm_marker(value: &str) -> bool {
     ["vlm", "vision", "multimodal", "image", "audio", "clip"]
         .iter()
         .any(|marker| value.contains(marker))
-}
-
-impl std::fmt::Debug for RuntimeChoice {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::Auto => write!(f, "auto"),
-            Self::MlxLm => write!(f, "mlx-lm"),
-            Self::MlxVlm => write!(f, "mlx-vlm"),
-        }
-    }
 }
 
 pub async fn check_dependencies() -> DependencyStatus {
