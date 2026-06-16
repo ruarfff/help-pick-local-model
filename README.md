@@ -92,3 +92,66 @@ cargo test
 
 `./scripts/qa.sh` builds the app and runs live smoke checks against this
 machine, including JSON validation and the `gemma4_unified` runtime explanation.
+
+## Release
+
+Releases are built by GitHub Actions when a version tag is pushed. The current
+release workflow runs on macOS, builds the release binary, packages it as
+`mlx-model-picker-macos.tar.gz`, and attaches that archive to a GitHub Release.
+
+Before creating a release:
+
+1. Make sure the working tree is clean.
+
+   ```sh
+   git status --short
+   ```
+
+2. Update the version in `Cargo.toml`.
+
+   ```toml
+   version = "0.1.0"
+   ```
+
+3. Run the local verification checks.
+
+   ```sh
+   cargo fmt --check
+   cargo clippy -- -D warnings
+   cargo test
+   ./scripts/qa.sh
+   ```
+
+4. Commit the version/docs changes.
+
+   ```sh
+   git add Cargo.toml Cargo.lock README.md
+   git commit -m "chore: release v0.1.0"
+   ```
+
+5. Create and push a version tag.
+
+   ```sh
+   git tag v0.1.0
+   git push origin main
+   git push origin v0.1.0
+   ```
+
+6. Watch the `Release` workflow in GitHub Actions. When it finishes, confirm the
+   GitHub Release has the `mlx-model-picker-macos.tar.gz` asset attached.
+
+To test the released archive on another Mac:
+
+```sh
+tar -xzf mlx-model-picker-macos.tar.gz
+./mlx-model-picker --help
+./mlx-model-picker --family gemma --top 5
+```
+
+Notes:
+
+- Tags only need to match `v*` for the current workflow, but semantic versions
+  like `v0.1.0` are recommended.
+- The current workflow builds one macOS archive from `macos-latest`. Separate
+  Apple Silicon, Intel, universal binaries, signing, and checksums are planned
+  release polish rather than part of the MVP workflow.
