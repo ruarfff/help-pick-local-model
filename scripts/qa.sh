@@ -19,6 +19,7 @@ help_out="$tmp_dir/help.txt"
 json_out="$tmp_dir/output.json"
 gemma_out="$tmp_dir/gemma.txt"
 explain_out="$tmp_dir/explain.txt"
+openclaw_out="$tmp_dir/openclaw.txt"
 
 "$bin" --help >"$help_out"
 grep -Fq "Pick a local MLX model for your Mac" "$help_out"
@@ -37,6 +38,9 @@ for key in ["machine", "recommended", "ranked", "rejected"]:
     if key not in payload:
         raise SystemExit(f"missing JSON key: {key}")
 
+if payload.get("use_case") != "coding":
+    raise SystemExit("default use_case must be coding")
+
 if not isinstance(payload["ranked"], list):
     raise SystemExit("ranked must be a list")
 PY
@@ -51,5 +55,9 @@ grep -Fq "gemma" "$gemma_out"
 grep -Fq "gemma4_unified" "$explain_out"
 grep -Fq "Runtime: mlx-vlm" "$explain_out"
 grep -Fq "mlx_vlm.server --model mlx-community/gemma-4-12B-it-OptiQ-4bit --port 8080" "$explain_out"
+
+"$bin" --use-case openclaw --explain mlx-community/gemma-4-12B-it-OptiQ-4bit >"$openclaw_out"
+grep -Fq "Use case: openclaw" "$openclaw_out"
+grep -Fq "http://localhost:8080/v1" "$openclaw_out"
 
 echo "QA passed"

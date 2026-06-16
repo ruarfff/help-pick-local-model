@@ -2,6 +2,7 @@ use mlx_model_picker::hf::HfModel;
 use mlx_model_picker::machine::MachineInfo;
 use mlx_model_picker::runtime::{DependencyStatus, RuntimeChoice, RuntimeKind};
 use mlx_model_picker::scoring::{FitStatus, PickerOptions, estimate_memory, rank_models};
+use mlx_model_picker::use_case::UseCaseId;
 
 fn test_machine(total_memory_gb: f64) -> MachineInfo {
     MachineInfo {
@@ -36,6 +37,7 @@ fn ranking_prefers_coding_instruction_model_over_base() {
         context_tokens: 16_000,
         concurrent_sessions: 1,
         runtime: RuntimeChoice::Auto,
+        use_case: UseCaseId::Coding,
         include_base: false,
         include_assistant: false,
         include_diffusion: false,
@@ -63,6 +65,7 @@ fn forced_runtime_keeps_vlm_only_model_out_of_top_slot() {
         context_tokens: 16_000,
         concurrent_sessions: 1,
         runtime: RuntimeChoice::MlxLm,
+        use_case: UseCaseId::Coding,
         include_base: false,
         include_assistant: false,
         include_diffusion: false,

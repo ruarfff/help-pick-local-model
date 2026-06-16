@@ -13,11 +13,13 @@ fn qa_script_exists_and_checks_expected_cli_outputs() {
     for expected in [
         "cargo build",
         "--help",
+        "--use-case openclaw",
         "--json",
         "--family gemma --top 5",
         "--explain mlx-community/gemma-4-12B-it-OptiQ-4bit",
         "gemma4_unified",
         "mlx_vlm.server",
+        "http://localhost:8080/v1",
     ] {
         assert!(
             script.contains(expected),

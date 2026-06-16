@@ -43,6 +43,15 @@ fn parses_eight_bit_and_bf16_variants() {
 }
 
 #[test]
+fn parses_generic_bit_quantization_variants() {
+    let three = parse_model_id("mlx-community/Qwen3-Coder-30B-A3B-Instruct-3bit");
+    let six = parse_model_id("mlx-community/Qwen3-Coder-30B-A3B-Instruct-6bit");
+
+    assert_eq!(three.quantization.as_deref(), Some("3bit"));
+    assert_eq!(six.quantization.as_deref(), Some("6bit"));
+}
+
+#[test]
 fn parses_diffusion_and_coder_names() {
     let diffusion = parse_model_id("mlx-community/diffusiongemma-26B-A4B-it-4bit");
     let coder = parse_model_id("mlx-community/Qwen3-Coder-30B-A3B-Instruct-4bit");

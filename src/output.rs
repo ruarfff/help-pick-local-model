@@ -5,10 +5,12 @@ use crate::{
     machine::MachineInfo,
     runtime::DependencyStatus,
     scoring::{RankedModel, RankedResult, runtime_label},
+    use_case::{UseCaseId, UseCaseProfile},
 };
 
 #[derive(Debug, Serialize)]
 pub struct JsonOutput<'a> {
+    pub use_case: UseCaseId,
     pub machine: &'a MachineInfo,
     pub runtime_status: &'a DependencyStatus,
     pub recommended: &'a Option<RankedModel>,
@@ -17,6 +19,9 @@ pub struct JsonOutput<'a> {
 }
 
 pub fn print_human(machine: &MachineInfo, deps: &DependencyStatus, result: &RankedResult) {
+    let profile = UseCaseProfile::for_id(result.use_case);
+    println!("Use case: {} ({})", profile.id(), profile.description());
+    println!();
     println!("Machine:");
     println!("  OS: {}", machine.os.as_deref().unwrap_or("unknown macOS"));
     println!("  Arch: {}", machine.arch);
@@ -50,6 +55,7 @@ pub fn print_human(machine: &MachineInfo, deps: &DependencyStatus, result: &Rank
             println!("Suggested command:");
             println!("  {command}");
         }
+        print_profile_note(profile);
     } else {
         println!("Recommended:");
         println!("  No compatible model found.");
@@ -60,8 +66,11 @@ pub fn print_human(machine: &MachineInfo, deps: &DependencyStatus, result: &Rank
 }
 
 pub fn print_explain(candidate: &RankedModel, deps: &DependencyStatus) {
+    let profile = UseCaseProfile::for_id(candidate.use_case);
     println!("Model:");
     println!("  {}", candidate.model.id);
+    println!();
+    println!("Use case: {} ({})", profile.id(), profile.description());
     println!();
     println!("Parsed name metadata:");
     println!("  Family: {}", candidate.parsed.family);
@@ -145,6 +154,7 @@ pub fn print_explain(candidate: &RankedModel, deps: &DependencyStatus) {
         println!("Suggested server command:");
         println!("  {command}");
     }
+    print_profile_note(profile);
 }
 
 pub fn json_string<'a>(
@@ -153,12 +163,21 @@ pub fn json_string<'a>(
     result: &'a RankedResult,
 ) -> serde_json::Result<String> {
     serde_json::to_string_pretty(&JsonOutput {
+        use_case: result.use_case,
         machine,
         runtime_status: deps,
         recommended: &result.recommended,
         ranked: &result.ranked,
         rejected: &result.rejected,
     })
+}
+
+fn print_profile_note(profile: UseCaseProfile) {
+    let note = profile.output_note();
+    if !note.is_empty() {
+        println!();
+        println!("{note}");
+    }
 }
 
 fn ranked_table(ranked: &[RankedModel]) -> Table {

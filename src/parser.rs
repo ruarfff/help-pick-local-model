@@ -158,7 +158,14 @@ fn infer_quantization(lower: &str) -> Option<String> {
             return Some(quant.to_string());
         }
     }
-    None
+    Regex::new(r"(?i)\b(\d+)bit\b")
+        .ok()
+        .and_then(|re| re.captures(lower))
+        .and_then(|captures| {
+            captures
+                .get(1)
+                .map(|value| format!("{}bit", value.as_str()))
+        })
 }
 
 fn is_known_token(

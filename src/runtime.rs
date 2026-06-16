@@ -53,6 +53,7 @@ impl std::fmt::Display for RuntimeChoice {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RuntimeDecision {
     pub runtime: Option<RuntimeKind>,
+    pub inferred_runtime: Option<RuntimeKind>,
     pub is_compatible: bool,
     pub warnings: Vec<String>,
 }
@@ -166,6 +167,7 @@ pub fn infer_runtime(
 
     RuntimeDecision {
         runtime: if is_compatible { forced } else { inferred },
+        inferred_runtime: inferred,
         is_compatible,
         warnings,
     }

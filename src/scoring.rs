@@ -6,6 +6,7 @@ use crate::{
     machine::MachineInfo,
     parser::{ParsedModel, parse_model_id},
     runtime::{DependencyStatus, RuntimeChoice, RuntimeDecision, RuntimeKind, infer_runtime},
+    use_case::{UseCaseId, UseCaseProfile},
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -45,6 +46,7 @@ pub struct PickerOptions {
     pub context_tokens: u64,
     pub concurrent_sessions: u64,
     pub runtime: RuntimeChoice,
+    pub use_case: UseCaseId,
     pub include_base: bool,
     pub include_assistant: bool,
     pub include_diffusion: bool,
@@ -65,6 +67,7 @@ pub struct ScoreItem {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RankedModel {
     pub model: HfModel,
+    pub use_case: UseCaseId,
     pub parsed: ParsedModel,
     pub memory: MemoryEstimate,
     pub runtime: RuntimeDecision,
@@ -88,6 +91,7 @@ impl RankedModel {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RankedResult {
+    pub use_case: UseCaseId,
     pub recommended: Option<RankedModel>,
     pub ranked: Vec<RankedModel>,
     pub rejected: Vec<RankedModel>,
@@ -103,10 +107,16 @@ pub fn estimate_memory(
 ) -> MemoryEstimate {
     let params_b = active_params_b.or(total_params_b).unwrap_or(7.0);
     let total_b = total_params_b.unwrap_or(params_b);
-    let bytes_per_param = match quantization.map(str::to_lowercase).as_deref() {
+    let quantization = quantization.map(str::to_lowercase);
+    let bytes_per_param = match quantization.as_deref() {
         Some("4bit") | Some("nvfp4") => 0.55,
         Some("8bit") | Some("mxfp8") => 1.20,
         Some("bf16") | Some("fp16") => 2.05,
+        Some(value) if value.ends_with("bit") => value
+            .trim_end_matches("bit")
+            .parse::<f64>()
+            .map(|bits| (bits / 8.0) * 1.15)
+            .unwrap_or(0.85),
         _ => 0.85,
     };
     let model_weights_gb = total_b * bytes_per_param;
@@ -166,6 +176,7 @@ pub fn rank_models(
     ranked.truncate(options.top);
 
     RankedResult {
+        use_case: options.use_case,
         recommended,
         ranked,
         rejected,
@@ -225,6 +236,20 @@ pub fn score_model(
     if !deps.supports(runtime.runtime) {
         warnings.push("local runtime dependencies appear incomplete".to_string());
     }
+    let profile = UseCaseProfile::for_id(options.use_case);
+    let profile_score = profile.score_adjustments(&parsed, &runtime);
+    for (label, value) in profile_score.items {
+        items.push(ScoreItem {
+            label: label.to_string(),
+            value,
+        });
+    }
+    for reason in profile_score.reasons {
+        reasons.push(reason.to_string());
+    }
+    for warning in profile_score.warnings {
+        warnings.push(warning.to_string());
+    }
 
     add_score(
         &mut items,
@@ -232,13 +257,6 @@ pub fn score_model(
         parsed.is_instruction_tuned,
         18.0,
         "instruction tuned",
-    );
-    add_score(
-        &mut items,
-        &mut reasons,
-        parsed.is_coding,
-        14.0,
-        "coding-oriented name",
     );
     if let Some(params) = parsed.total_params_b {
         let value = (params.ln() * 8.0).min(30.0);
@@ -347,6 +365,7 @@ pub fn score_model(
     let total = items.iter().map(|item| item.value).sum();
     RankedModel {
         model,
+        use_case: options.use_case,
         parsed,
         memory,
         runtime,

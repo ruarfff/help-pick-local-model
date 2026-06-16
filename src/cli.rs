@@ -9,6 +9,7 @@ use crate::{
     parser::parse_model_id,
     runtime::{RuntimeChoice, check_dependencies},
     scoring::{PickerOptions, rank_models, score_model},
+    use_case::UseCaseId,
 };
 
 #[derive(Debug, Parser)]
@@ -60,8 +61,11 @@ pub struct Args {
     #[arg(long)]
     pub explain: Option<String>,
 
-    #[arg(long, default_value = "coding-agent", hide = true)]
-    pub workload: String,
+    #[arg(long = "use-case", value_parser = UseCaseId::parse)]
+    pub use_case: Option<UseCaseId>,
+
+    #[arg(long, value_parser = UseCaseId::parse, hide = true)]
+    pub workload: Option<UseCaseId>,
 }
 
 pub async fn run() -> Result<()> {
@@ -87,6 +91,7 @@ async fn run_with_args(args: Args) -> Result<()> {
         context_tokens: args.context,
         concurrent_sessions: args.concurrent,
         runtime: args.runtime,
+        use_case: args.use_case.or(args.workload).unwrap_or(UseCaseId::Coding),
         include_base: args.include_base,
         include_assistant: args.include_assistant,
         include_diffusion: args.include_diffusion,

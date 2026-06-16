@@ -72,6 +72,9 @@ Common commands:
 
 ```sh
 cargo run -- --family gemma --top 5
+cargo run -- --use-case coding --family qwen --top 5
+cargo run -- --use-case openclaw --top 5
+cargo run -- --use-case vision --top 5
 cargo run -- --family qwen --top 5
 cargo run -- --runtime mlx-vlm --check-local-runtime
 cargo run -- --json
@@ -79,7 +82,9 @@ cargo run -- --explain mlx-community/gemma-4-12B-it-OptiQ-4bit
 ```
 
 The default author is `mlx-community`, the default context is `16000`, and the
-default runtime mode is `auto`.
+default runtime mode is `auto`. The default use case is `coding`; choose
+`openclaw`, `chat`, or `vision` when you want recommendation weights and notes
+tailored to that workflow.
 
 ## Development
 
